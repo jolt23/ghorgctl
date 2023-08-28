@@ -85,6 +85,69 @@ func Clone(org string, prefix string) error {
 	return nil
 }
 
+func Pull() error {
+	path, wderr := os.Getwd()
+	if wderr != nil {
+		return wderr
+	}
+
+	fmt.Println("")
+	fmt.Println("Pulling latest")
+
+	entries, derr := os.ReadDir(path)
+	if derr != nil {
+		fmt.Printf("|-- %s (error)\n", path)
+		fmt.Printf("|  -- %s\n", derr.Error())
+		return derr
+	}
+
+	//TODO properly handle errors
+	for _, e := range entries {
+		if e.IsDir() {
+			r, oerr := git.PlainOpen(fmt.Sprintf("%s/%s", path, e.Name()))
+			if oerr == nil {
+				w, werr := r.Worktree()
+				if werr == nil {
+					s, serr := w.Status()
+					if serr != nil {
+						fmt.Printf("|-- %s (status error)\n", path)
+						fmt.Printf("|  -- %s\n", serr.Error())
+					} else {
+						if s.IsClean() {
+							err := w.Pull(&git.PullOptions{
+								Auth: &githttp.BasicAuth{
+									Username: "git",
+									Password: token,
+								},
+							})
+							if err == nil {
+								fmt.Printf("|-- %s (updated)\n", e.Name())
+							} else {
+								if err == git.NoErrAlreadyUpToDate {
+									fmt.Printf("|-- %s (already up to date)\n", e.Name())
+								} else {
+									fmt.Printf("|-- %s (error)\n", e.Name())
+									fmt.Printf("|  -- %s\n", err.Error())
+								}
+							}
+						} else {
+							fmt.Printf("|-- %s (not clean, pull skipped)\n", path)
+						}
+					}
+				} else {
+					fmt.Printf("|-- %s (error)\n", e.Name())
+					fmt.Printf("|  -- %s\n", werr.Error())
+				}
+			} else {
+				fmt.Printf("|-- %s (error)\n", e.Name())
+				fmt.Printf("|  -- %s\n", oerr.Error())
+			}
+		}
+	}
+
+	return nil
+}
+
 func init() {
 	page_size = 100
 

@@ -11,6 +11,7 @@ func main() {
 	cmds := []commands.Runner{
 		commands.NewCloneCommand(),
 		commands.NewListCommand(),
+		commands.NewPullCommand(),
 	}
 
 	if len(os.Args) <= 1 {
